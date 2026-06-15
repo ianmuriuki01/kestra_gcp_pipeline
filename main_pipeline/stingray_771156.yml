@@ -1,0 +1,39 @@
+id: stingray_771156
+namespace: kestra_gcp_pipeline
+
+tasks:
+  - id: hello
+    type: io.kestra.plugin.core.log.Log
+    message: Hello World! 🚀
+  
+  - id: create_gcp_buckets
+    type: io.kestra.plugin.gcp.gcs.CreateBucket
+    name: "{{kv('GCP_BUCKET')}}"
+    ifExists: SKIP
+    storageClass: REGIONAL
+
+  - id: create_bq_dataset
+    type: io.kestra.plugin.gcp.bigquery.CreateDataset
+    name: "{{kv('GCP_DATASET')}}"
+    ifExists: SKIP
+
+  - id: to_git
+    type: io.kestra.plugin.git.PushFlows
+    branch: main
+    commitMessage: setting up gcp bucket and bigquery dataset
+    password: "{{secret('TOKEN')}}"
+    username: "{{secret('USERNAME')}}"
+    url: https://github.com/ianmuriuki01/kestra_gcp_pipeline
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp
+    values:
+      serviceAccount: "{{secret('GCP')}}"
+      location: "{{kv('GCP_LOCATION')}}"
+      projectId: "{{kv('GCP_PROJECT_ID')}}"
+
+
+
+
+
+

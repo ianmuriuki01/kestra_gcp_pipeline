@@ -1,0 +1,72 @@
+id: salamander_461077
+namespace: kestra_gcp_pipeline
+
+inputs:
+  - id: taxi_color
+    type: STRING
+    required: true
+variables:
+    file: "{{inputs.taxi_color}}_tripdata_{{trigger.date | date('yyyy-MM')}}.csv"
+    gcs_file: "gs://{{kv('GCP_BUCKET')}}/{{render(vars.file)}}"
+    dataset: "{{kv('GCP_DATASET')}}.{{inputs.taxi_color}}_tripdata_{{trigger.date | date('yyyy-MM')}}"
+    data: "{{outputs.extract_data.outputFiles[inputs.taxi_color ~ '_tripdata_' ~ (trigger.date | date('yyyy-MM')) ~ '.csv']}}"
+
+tasks:
+  - id: hello
+    type: io.kestra.plugin.core.log.Log
+    message: Hello World! 🚀
+
+  - id: extract_data
+    type: io.kestra.plugin.scripts.shell.Commands
+    outputFiles:
+      - "*.csv"
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    commands:
+      - curl -sL https://github.com/DataTalksClub/nyc-tlc-data/releases/download/{{inputs.taxi_color}}/{{render(vars.file)}}.gz | gunzip > {{render(vars.file)}}
+
+  - id: gcp_upload
+    type: io.kestra.plugin.gcp.gcs.Upload
+    to: "{{render(vars.gcs_file)}}"
+    from: "{{render(vars.data)}}"
+
+  - id: to_git
+    type: io.kestra.plugin.git.PushFlows
+    branch: main
+    username: "{{secret('USERNAME')}}"
+    password: "{{secret('TOKEN')}}"
+    url: https://github.com/ianmuriuki01/kestra_gcp_pipeline
+    commitMessage: Extlact from api and load to GCP bucket
+    gitDirectory: main_pipeline
+
+    
+
+
+
+
+triggers:
+  - id: green_trigger
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 9 1 * *"
+    inputs:
+      taxi_color: green
+  
+  - id: yellow_trigger
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 9 1 * *"
+    inputs:
+      taxi_color: yellow
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp
+    values:
+      serviceAccount: "{{secret('GCP')}}"
+      location: "{{kv('GCP_LOCATION')}}"
+      projectId: "{{kv('GCP_PROJECT_ID')}}"
+      bucket: "{{kv('GCP_BUCKET')}}"
+      dataset: "{{kv('GCP_DATASET')}}"
+
+
+
+
+  

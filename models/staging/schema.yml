@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: staging
+    database: versatile-gist-497921-i9
+    schema: new_bq_dataset
+
+    tables:
+      - name: green_tripdata
+      - name: yellow_tripdata
